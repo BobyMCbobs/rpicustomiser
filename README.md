@@ -15,6 +15,13 @@ A useful tool for customising Rasbian. Chroot, install deb packages, copy files,
 ## Building
 rpicustomiser can be built into a deb package just by simply running `make`.
 
+## Configuration
+If your SD which automounts doesn't show up in rpicustomiser, don't freak out.
+Use the config menu (which will be suggested if an SD card mounted is not detected) for these options.
+- General mount point location (/media/$USER is typical on GNU/Linux distros)
+- boot partition mount name
+- rootfs partiton mount name
+
 ## Use case ideas
 - Setting up one Raspbian install for imaging.
 - Installing deb packages onto an install of Raspbian without having a working Raspberry Pi or internet available to a Raspberry Pi.
