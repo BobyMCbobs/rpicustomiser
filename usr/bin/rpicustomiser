@@ -60,6 +60,8 @@ EOF
 function main_menu() {
 # print menu.
 
+[ $check_for_sudo = 1 ] && sudo_check
+
 if [ $had_greeting_init = 1 ]
 then
 	echo
