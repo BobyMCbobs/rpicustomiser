@@ -1,0 +1,841 @@
+#!/bin/bash
+
+#
+# rpicustomiser by github.com/BobyMCbobs
+#
+# v1.0
+#
+# Licensed under GPL3.
+#
+
+arg1=$1
+had_greeting_init=1
+check_for_sudo=1
+RPI_CUSTOMISER_VERSION="1.0"
+
+ttred=$(echo "")
+ttgreen=$(echo "")
+ttyellow=$(echo "")
+ttblue=$(echo "")
+ttmagenta=$(echo "")
+ttcyan=$(echo "")
+ttwhite=$(echo "")
+tbred=$(echo "")
+tbwhite=$(echo "")
+treset=$(echo "")
+
+function gen_cfg() {
+# create rpicustomiser.cfg file
+
+gen_arg=$@
+case "$gen_arg" in
+	reset)
+		echo
+		echo "> Resetting config."
+		default_mount_pos="/media/\$USER"
+		default_partition_names=(boot rootfs)
+	;;
+
+	modify)
+		echo "> Commiting changes to config."
+		echo
+	;;
+
+	setup)
+		default_mount_pos="/media/\$USER"
+		default_partition_names=(boot rootfs)
+		return 0
+	;;
+esac
+
+[ -f $HOME/.config/rpicustomiser/rpicustomiser.cfg ] && rm $HOME/.config/rpicustomiser/rpicustomiser.cfg
+
+cat > $HOME/.config/rpicustomiser/rpicustomiser.cfg << EOF
+default_mount_pos="$default_mount_pos"
+default_partition_names=(${default_partition_names[0]} ${default_partition_names[1]})
+EOF
+
+}
+
+function main_menu() {
+# print menu.
+
+if [ $had_greeting_init = 1 ]
+then
+	echo
+	echo "${ttgreen}-- WELCOME to $0 -- ${treset}"
+	had_greeting_init=0
+fi
+
+scan_for_sd
+
+cat << EOF
+${ttgreen}> What do you want to do?${treset}
+
+[00]${ttyellow} Copy contents from local '${default_partition_names[1]}' or '${default_partition_names[0]}' to RPi SD card.${treset}
+[01]${ttblue} Install deb packages.${treset}
+[02]${ttcyan} Chroot.${treset}
+[03]${ttyellow} Init current directory with workbench.${treset}
+[04]${ttblue} Configure Raspbian.${treset}
+[cC]${ttcyan} Configure rpicustomiser. ${treset}
+[hH]${ttcyan} Help menu.${treset}
+[qQ]${ttred} Quit.${treset}
+EOF
+
+read -p ": " continuevar
+case "$continuevar" in
+	0|00)
+		verify_to_copy_data_to_RPi
+		main_menu
+	;;
+
+	1|01)
+		chroot_install_debpkgs
+		main_menu
+	;;
+
+	2|02)
+		chroot_menu
+	;;
+
+	3|03)
+		init_pwd
+	;;
+
+	4|04)
+		rpi_cfg_menu
+	;;
+
+	c|C)
+		rpic_config
+	;;
+
+	h|H)
+		help_menu
+	;;
+
+	q|Q)
+		exit
+	;;
+
+	*)
+		echo ""
+		echo ">> I don't know what you mean by '$continuevar'."
+		echo ""
+		main_menu
+	;;
+esac
+
+}
+
+function scan_for_sd() {
+# locate SD card.
+
+if [ ! -d $default_mount_pos/${default_partition_names[1]} ] && [ ! -d $default_mount_pos/${default_partition_names[0]} ]
+then
+	echo "${ttred}>> Cannot find RPi SD card. Please insert. ${treset}"
+	echo "> I'm looking for '$default_mount_pos/${default_partition_names[1]}' and '$default_mount_pos/${default_partition_names[0]}'."
+	read -p "> Try again or change settings? [yY|nN|sS] " continuevar
+	echo
+	case "$continuevar" in
+		y|Y)
+			scan_for_sd
+		;;
+
+		n|N)
+			echo ">> Nothing to do. Exiting..."
+			exit
+		;;
+
+		s|S)
+			rpic_config
+		;;
+
+		*)
+			main_menu
+		;;
+	esac
+#else
+	#echo "> Found '${default_partition_names[1]}' and '${default_partition_names[0]}' of RPi SD card."
+fi
+
+}
+
+function verify_to_copy_data_to_RPi() {
+# prepare to copy data from ./${default_partition_names[1]} to $default_mount_pos/${default_partition_names[1]}.
+
+check_init_pwd
+
+empty_folder_counter=0
+[[ ! "$(ls -A ./${default_partition_names[0]})" ]] && empty_folder_counter=$((empty_folder_counter+1))
+[[ ! "$(ls -A ./${default_partition_names[1]})" ]] && empty_folder_counter=$((empty_folder_counter+1))
+
+case "$empty_folder_counter" in
+	2)
+		echo "$ttred>> No files in ./${default_partition_names[0]} or ./${default_partition_names[1]}.$treset"
+		main_menu
+	;;
+esac
+
+
+read -p "> Copy data from './${default_partition_names[1]}' to '$default_mount_pos/${default_partition_names[1]}'? [yY|nN] " continuevar
+echo
+case "$continuevar" in
+	y|Y)
+		echo "> Continuing..."
+		copy_data_to_RPi
+	;;
+
+	n|N)
+		echo "> Returning..."
+		main_menu
+	;;
+
+	*)
+		echo "${ttred}>> I don't know what you mean by '$continuevar'. ${treset}"
+		verify_to_copy_data_to_RPi
+	;;
+esac
+
+}
+
+function copy_data_to_RPi() {
+# copy data from ./${default_partition_names[1]} to $default_mount_pos/${default_partition_names[1]}.
+
+if $sudo_prog cp -r -f -v ./${default_partition_names[1]}/. $default_mount_pos/${default_partition_names[1]}/ && $sudo_prog cp -r -f -v ./${default_partition_names[0]}/. $default_mount_pos/${default_partition_names[0]}/
+then
+	echo "${ttgreen}> Copied sucessfully.${treset}"
+else
+	echo "${ttred}>> Failed to copy. ${treset}"
+fi
+
+}
+
+function chroot_install_debpkgs() {
+# install deb packages from local debs folder.
+
+check_init_pwd
+
+if [[ ! $(ls -A ./debs) ]]
+then
+        echo "${ttred}>> No .deb packages to install. ${treset}"
+	echo "> Place packages in the 'debs' folder, then try again."
+	echo
+        main_menu
+fi
+
+check_mount_chroot
+if ! echo $chroot_state | grep -q Mounted.
+then
+	echo "${ttred}>> Chroot not setup. ${treset}"
+	read -p "Shall I setup it up? [yY|nN] " continuevar
+	echo
+	case "$continuevar" in
+		y|Y)
+			setup_chroot
+		;;
+
+		*)
+			echo "${ttred}>> Not setting up. Returning to main menu. ${treset}"
+			main_menu
+		;;
+	esac
+
+fi
+
+if $sudo_prog cp -r -v -f ./debs $default_mount_pos/${default_partition_names[1]}/tmp/
+then
+	echo "${ttgreen}> Copied over all deb packages. ${treset}"
+else
+	echo "${ttred}>> Failed to copy over deb packages."
+	echo "${ttgreen}> Unsetting chroot. ${treset}"
+	unchroot
+	main_menu
+fi
+
+
+if $sudo_pkg cat > $default_mount_pos/${default_partition_names[1]}/tmp/install_debs.sh << DELIM
+echo "> Starting package install."
+apt update
+cd /tmp/debs/
+for i in \$(ls)
+do
+	apt install -y ./\$i
+done
+apt install -f
+echo "> Finished package install."
+DELIM
+then
+	echo "${ttgreen}> Script generated and written.${treset}"
+else
+	echo "${ttred}>> Failed to generate or write script.${treset}"
+fi
+
+if enter_chroot deb
+then
+	echo "${ttgreen}> Commands successful.${treset}"
+else
+	echo "${ttred}>> Commands failed.${treset}"
+fi
+
+unchroot
+
+if $sudo_prog rm -rf $default_mount_pos/${default_partition_names[1]}/tmp/install_debs.sh $default_mount_pos/${default_partition_names[1]}/tmp/debs
+then
+	echo "${ttgreen}> Cleaned up.${treset}"
+else
+	echo "${ttred}>> Failed to clean up.${treset}"
+fi
+
+}
+
+function init_pwd() {
+# initalise current directory.
+
+if [[ -d $(pwd)/${default_partition_names[0]} ]] || [[ -d $(pwd)/${default_partition_names[1]} ]] || [[ -d $(pwd)/debs ]]  || [[ -f $(pwd)/.rpicustomiser_dir ]]
+then
+	echo "${ttgreen}> Current directory already initialised."
+	echo
+	main_menu
+fi
+
+if mkdir -p ./raspberrypi_customiser/{${default_partition_names[0]},${default_partition_names[1]},debs} && echo "" > ./raspberrypi_customiser/.rpicustomiser_dir
+then
+	echo "${ttgreen}> Initalised '$(pwd)/raspberrypi_customiser'. ${treset}"
+else
+	echo "${ttred}>> Failed to make directories. ${treset}"
+fi
+
+}
+
+function check_init_pwd() {
+# setup a workstation.
+if [[ -d $(pwd)/raspberrypi_customiser ]]
+then
+	echo "${ttgreen}> Please cd into 'raspberry_customiser'.${treset}"
+	exit
+
+elif [[ ! -d $(pwd)/${default_partition_names[0]} ]] || [[ ! -d $(pwd)/${default_partition_names[1]} ]] || [[ ! -d $(pwd)/debs ]]  || [[ ! -f $(pwd)/.rpicustomiser_dir ]]
+then
+	echo "${ttwhite}${tbred}>> Please run ${ttred}${tbwhite}'$0 init'${treset}${ttwhite}${tbred} to setup a workstation.${treset}"
+	exit
+fi
+
+}
+
+function chroot_menu() {
+# menu for chroot.
+
+check_mount_chroot
+
+cat << EOF
+
+Filesystems for chroot: $chroot_state
+
+[00]${ttyellow} Setup chroot.${treset}
+[01]${ttred} Unmount chroot.${treset}
+[02]${ttgreen} Enter chroot.${treset}
+[mM]${ttcyan} Return to main menu.${treset}
+[qQ] Quit.
+EOF
+
+read -p ": " continuevar
+echo
+case "$continuevar" in
+	0|00)
+		setup_chroot
+		chroot_menu
+	;;
+
+	1|01)
+		unchroot
+		chroot_menu
+	;;
+
+	2|02)
+		enter_chroot
+		chroot_menu
+	;;
+
+	m|M)
+		main_menu
+	;;
+
+	q|Q)
+		exit
+	;;
+
+	*)
+		echo
+		echo "${ttred}>> I don't know what you mean by '$continuevar'.${treset}"
+		echo
+		chroot_menu
+	;;
+
+esac
+
+}
+
+function enter_chroot() {
+# enter chroot after initialisation.
+
+chr_cmd=$@
+
+if echo $chroot_state | grep -q "Mounted."
+then
+	echo
+	echo "${ttgreen}> Filesystems are mounted. Continuing. ${treset}"
+	case "$chr_cmd" in
+		deb)
+			echo "> Running commands '$chr_cmd'"
+	       		$sudo_prog chroot $default_mount_pos/${default_partition_names[1]}/ /bin/bash -c 'bash /tmp/install_debs.sh'
+		;;
+
+		rpi_cfg)
+			$sudo_prog chroot $default_mount_pos/${default_partition_names[1]}/ /bin/bash -c 'raspi-config'
+		;;
+
+		*)
+			echo
+			echo "$tbred> PLEASE BE CAREFUL OF COMMANDS RUN. $treset"
+			echo "$tbred> Some commands may effect host. $treset"
+			echo
+			echo "> Press ^D to exit. (Ctrl-D)"
+			$sudo_prog chroot $default_mount_pos/${default_partition_names[1]}/ /bin/bash
+			echo "${ttred}${tbwhite}> Please make sure you unmount by running opt[1]. ${treset}"
+		;;
+	esac
+
+else
+	echo "${ttred}>> Whoops! Filesystems not mounted. ${treset}"
+	read -p "Shall I setup it up? [yY|nN] " continuevar
+	echo
+	case "$continuevar" in
+		y|Y)
+			setup_chroot
+			enter_chroot
+		;;
+
+		*)
+			echo "${ttred}>> Not setting up. Returning to chroot menu. ${treset}"
+			chroot_menu
+		;;
+	esac
+
+fi
+
+}
+
+function check_mount_chroot() {
+# checks if chroot mounts are mounted.
+
+mount_num=0
+for point in /dev /sys /proc /dev/pts
+do
+        if mount | grep -q $default_mount_pos/${default_partition_names[1]}$point
+        then
+                mount_num=$((mount_num+1))
+	fi
+done
+
+case "$mount_num" in
+	4|5)
+		chroot_state="${ttgreen}$(echo Mounted.)${treset}"
+	;;
+
+	*)
+		chroot_state="${ttyellow}$(echo Unmounted.)${treset}"
+	;;
+esac
+
+}
+
+function setup_chroot() {
+# setup chroot environment and enter.
+
+echo
+echo "${ttgreen}> Setting up chroot environment.${treset}"
+setup_progress=0
+
+for point in /dev /sys /proc /dev/pts
+do
+	if mount | grep -q $default_mount_pos/${default_partition_names[1]}$point
+	then
+		echo "${ttred}>> Already mounted. ${treset}"
+	else
+		if ! $sudo_prog mount --bind $point $default_mount_pos/${default_partition_names[1]}$point
+		then
+			echo "${ttred}>> Failed to mount '$point' to '$default_mount_pos/${default_partition_names[1]}$point'. ${treset}"
+			setup_progress=1
+		fi
+	fi
+done
+
+$sudo_prog sed -i 's/^/#/g' $default_mount_pos/${default_partition_names[1]}/etc/ld.so.preload
+$sudo_prog cp /usr/bin/qemu-arm-static $default_mount_pos/${default_partition_names[1]}/usr/bin/
+
+if [ $setup_progress = 0 ]
+then
+	echo "${ttgreen}> Successfully mounted."
+	echo "> Finalising..."
+
+	$sudo_prog sed -i 's/^/#/g' $default_mount_pos/${default_partition_names[1]}/etc/ld.so.preload
+	$sudo_prog cp /usr/bin/qemu-arm-static $default_mount_pos/${default_partition_names[1]}/usr/bin/
+
+	echo "> Chroot setup. ${treset}"
+	chroot_state="${ttgreen}$(echo Mounted.)${treset}"
+else
+	echo "${ttred}>> Chroot failed. Cleaning up... ${treset}"
+	unchroot
+fi
+
+}
+
+function unchroot() {
+# unmount everything.
+
+setup_progress=0
+
+echo "${ttgreen}> Unmounting filesystems.${treset}"
+
+for point in /proc /sys /dev/pts /dev
+do
+	if mount | grep -q $default_mount_pos/${default_partition_names[1]}$point
+	then
+		if ! $sudo_prog umount $default_mount_pos/${default_partition_names[1]}$point
+		then
+			echo "${ttred}>> Failed to unmount '$default_mount_pos/${default_partition_names[1]}$point'. ${treset}"
+			setup_progress=1
+		fi
+	fi
+done
+
+if [ $setup_progress = 0 ]
+then
+	echo "${ttgreen}> Unmount of chroot mounts complete."
+	echo "> Cleaning up..."
+
+	$sudo_prog sed -i 's/#//g' $default_mount_pos/${default_partition_names[1]}/etc/ld.so.preload
+        $sudo_prog rm $default_mount_pos/${default_partition_names[1]}/usr/bin/qemu-arm-static
+
+	echo "> Process complete. ${treset}"
+
+	chroot_state="${ttyellow}$(echo Unmounted.)${treset}"
+else
+	echo "${ttred}${tbwhite}>> Whoops! Had issues unmounting. I can't clean up. ${treset}"
+	chroot_state="${ttgreen}$(echo Not unmounted completely.)${treset}"
+fi
+
+}
+
+function rpic_config() {
+# configure rpicustomiser
+
+cat << EOF
+${ttgreen}-- Configurable options --${treset}
+
+${tbwhite}${ttgreen}Config location: '$HOME/.config/rpicustomiser/rpicustomiser.cfg' (you shouldn't need to manually edit it.) ${treset}
+
+${ttblue}Mount points${treset}
+[00]${ttyellow} mount location (default: /media/\$USER;  current: $default_mount_pos).${treset}
+[01]${ttmagenta} boot partition (default: boot;          current: ${default_partition_names[0]}).${treset}
+[02]${ttcyan} root partition (default: rootfs;        current: ${default_partition_names[1]}).${treset}
+[rR] Reset all.
+[wW]${ttgreen} Write changes.${treset}
+[mM]${ttblue} Main menu.${treset}
+[qQ] Quit.
+EOF
+
+read -p ": " continuevar
+
+case "$continuevar" in
+	0)
+		echo
+		echo "${ttred}Note: Please use absolute directory path.${treset}"
+		read -p "${ttmagenta}New base mount directory (i.e /media/\$USER):${treset} " continuevar_dir
+		[ ! -d $continuevar_dir ] && echo "${ttred}>>'$continuevar_dir' doesn't exist. Please set an existing one, or make one.${treset}" && rpic_config
+		default_mount_pos="$continuevar_dir"
+		echo "${ttgreen}> Set '$default_mount_pos' as mount location.${treset}"
+		rpic_config
+	;;
+
+	1)
+		list_possible_boot_mounts
+	;;
+
+	2)
+		list_possible_root_mounts
+	;;
+
+	r|R)
+		gen_cfg reset
+		rpic_config
+	;;
+
+	w|W)
+		gen_cfg modify
+		main_menu
+	;;
+
+	m|M)
+		main_menu
+	;;
+
+	q|Q)
+		exit
+	;;
+
+	*)
+		echo "${ttred}>> I don't know what you mean by '$continuevar'. Please use a valid option.${treset}"
+		echo
+		rpic_config
+	;;
+esac
+
+}
+
+function list_possible_root_mounts() {
+#find mounted devices which could possibly be the RPi
+
+cat << EOF
+
+${ttgreen}Change root to:
+[00] Default - '${default_partition_names[1]}'.${treset}
+EOF
+
+mount_count=1
+mount_options=()
+for i in $(ls $default_mount_pos)
+do
+	if [ -f $default_mount_pos/$i/etc/apt/sources.list.d/raspi.list ] && [ -f $default_mount_pos/$i/usr/bin/raspi-config ]
+	then
+		echo "${ttcyan}[0$mount_count] '$i' (Found option).${treset}"
+		mount_count=$((mount_count+=1))
+		mount_options+="$i"
+	fi
+done
+
+[ $mount_count = 1 ] && echo "${ttred}>> No Raspbian root partitions found mounted."
+
+echo "${ttmagenta}[rR] Reset.${treset}"
+echo "${ttblue}[mM] Return to Main Menu.${treset}"
+echo "[qQ] Quit."
+
+read -p ": " continuevar_num
+echo
+
+case "$continuevar_num" in
+	0)
+		echo "${ttblue}> Set '${default_partition_names[1]}' as root filesystem.${treset}"
+		rpic_config
+	;;
+
+	r|R)
+		gen_cfg reset
+		rpic_config
+	;;
+
+	m|M)
+		main_menu
+	;;
+
+	q|Q)
+		exit
+	;;
+
+	*)
+		re='^[0-9]+$'
+		if [[ $continuevar_num =~ $re ]]
+		then
+			continuevar_num=$((continuevar_num-=1))
+			echo "${ttblue}> Set '${mount_options[continuevar_num]}' as root filesystem.${treset}"
+			default_partition_names[1]="${mount_options[continuevar_num]}"
+			rpic_config
+		else
+			echo "${ttred}>> I'm not sure what you mean by '$continuevar'.${treset}"
+			list_possible_root_mounts
+		fi
+	;;
+
+esac
+
+}
+
+function list_possible_boot_mounts() {
+#find mounted devices which could possibly be the RPi
+
+cat << EOF
+
+${ttgreen}Change boot to:
+[00] Default - '${default_partition_names[0]}'.${treset}
+EOF
+
+mount_count=1
+mount_options=()
+for i in $(ls $default_mount_pos)
+do
+	if [ -f $default_mount_pos/$i/kernel.img ] && [ -f $default_mount_pos/$i/config.txt ]
+	then
+		echo "${ttcyan}[0$mount_count] '$i' (Found option).${treset}"
+		mount_count=$((mount_count+=1))
+		mount_options+="$i"
+	fi
+done
+
+[ $mount_count = 1 ] && echo "${ttred}>> No Raspbian boot partitions found mounted."
+
+echo "${ttmagenta}[rR] Reset.${treset}"
+echo "${ttblue}[mM] Return to Main Menu.${treset}"
+echo "[qQ] Quit."
+
+read -p ": " continuevar_num
+echo
+
+case "$continuevar_num" in
+	0)
+		echo "${ttblue}> Set '${default_partition_names[1]}' as boot filesystem.${treset}"
+		rpic_config
+	;;
+
+	r|R)
+		gen_cfg reset
+		rpic_config
+	;;
+
+	m|M)
+		main_menu
+	;;
+
+	q|Q)
+		exit
+	;;
+
+	*)
+		re='^[0-9]+$'
+		if [[ $continuevar_num =~ $re ]]
+		then
+			continuevar_num=$((continuevar_num-=1))
+			echo "${ttblue}> Set '${mount_options[continuevar_num]}' as noot filesystem.${treset}"
+			default_partition_names[0]="${mount_options[continuevar_num]}"
+			rpic_config
+		else
+			echo "${ttred}>> I'm not sure what you mean by '$continuevar'.${treset}"
+			list_possible_boot_mounts
+		fi
+	;;
+
+esac
+
+}
+
+function rpi_cfg_menu() {
+# setup chroot then run raspi-config on sd card
+
+setup_chroot
+enter_chroot rpi_cfg
+unchroot
+main_menu
+
+}
+
+function help_menu() {
+# print help menu
+
+cat << EOF
+
+rpicustomiser by Caleb Woodbine
+-------------
+A useful tool for customising Rasbian. Chroot, install deb packages, copy files, customise.
+
+Usage: 'rpicustomiser [OPTION]'
+Options:
+	i, -i, init, --init	Create 'raspberrypi_customiser' directory for copying files
+				to ${default_partition_names[0]} and/or ${default_partition_names[1]}.
+	c, -c, --color,		Enable color rendering.
+	--colour
+	--no-sudo-check		Don't check if user has sudo perms or sudo binary exists.
+	-v, --version		Print version information.
+	?, -h, help, --help	Print this menu.
+
+EOF
+
+}
+
+function sudo_check() {
+
+# sudo stuff
+if id | grep -q sudo && which sudo > /dev/null
+then
+	sudo_prog="sudo"
+
+elif [ $(whoami) = "root" ]
+then
+	sudo_prog=""
+else
+	echo "${ttred}>> You must be in sudoers or be root to use some this program. ${treset}"
+	exit
+fi
+
+}
+
+function print_version() {
+# print version information
+
+cat << EOF
+rpicustomiser v$RPI_CUSTOMISER_VERSION by Caleb Woodbine
+github.com/BobyMCBobs
+EOF
+
+}
+
+default_mount_pos="/media/$USER"
+default_partition_names=(boot rootfs)
+
+# cfg stuff
+if [ ! -f $HOME/.config/rpicustomiser/rpicustomiser.cfg ]
+then
+	mkdir -p $HOME/.config/rpicustomiser
+	gen_cfg
+fi
+
+. $HOME/.config/rpicustomiser/rpicustomiser.cfg
+
+#[ ! -d $default_mount_pos/${default_partition_names[1]} ] && list_possible_root_mounts
+
+# program args
+case "$arg1" in
+	i|-i|init|--init)
+		init_pwd
+	;;
+
+	c|-c|--color|--colour)
+	ttred=$(tput setaf 1)
+	ttgreen=$(tput setaf 2)
+	ttyellow=$(tput setaf 3)
+	ttblue=$(tput setaf 4)
+	ttmagenta=$(tput setaf 5)
+	ttcyan=$(tput setaf 6)
+	ttwhite=$(tput setaf 7)
+	tbred=$(tput setab 1)
+	tbwhite=$(tput setab 7)
+	treset=$(tput sgr 0)
+		main_menu
+	;;
+
+	--no-sudo-check)
+		check_for_sudo=0
+		main_menu
+	;;
+
+	?|-h|help|--help)
+		help_menu
+	;;
+
+	-v|--version)
+		print_version
+	;;
+
+	*)
+		main_menu
+	;;
+esac
