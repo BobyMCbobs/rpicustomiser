@@ -784,7 +784,7 @@ function print_version() {
 # print version information
 
 cat << EOF
-rpicustomiser v$RPI_CUSTOMISER_VERSION by Caleb Woodbine
+rpicustomiser v$RPI_CUSTOMISER_VERSION by github.com/BobyMCbobs
 github.com/BobyMCBobs
 EOF
 
