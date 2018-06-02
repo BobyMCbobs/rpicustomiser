@@ -13,6 +13,7 @@ A useful tool for customising Rasbian. Chroot, install deb packages, copy files,
 `rpicustomiser`
 
 ## Building
+Dependencies: fakeroot
 rpicustomiser can be built into a deb package just by simply running `make`.
 
 ## Configuration
@@ -25,5 +26,3 @@ Use the config menu (which will be suggested if an SD card mounted is not detect
 ## Use case ideas
 - Setting up one Raspbian install for imaging.
 - Installing deb packages onto an install of Raspbian without having a working Raspberry Pi or internet available to a Raspberry Pi.
-
-

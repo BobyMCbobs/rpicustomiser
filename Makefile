@@ -1,9 +1,8 @@
 all:
-	mkdir src
-	cp -r DEBIAN usr src
-	sudo cp -r --no-preserve=ownership src rpicustomiser
+	mkdir build
+	fakeroot -u cp -r --no-preserve=ownership src rpicustomiser
 	dpkg-deb --build rpicustomiser
-	sudo rm -r rpicustomiser src
+	fakeroot -u rm -r rpicustomiser build
 
 clean:
-	sudo rm -r rpicustomiser*
+	fakeroot -u rm -r build rpicustomiser*.deb
