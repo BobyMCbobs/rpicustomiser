@@ -13,7 +13,7 @@ A useful tool for customising Rasbian. Chroot, install deb packages, copy files,
 `rpicustomiser`
 
 ## Building
-Dependencies: fakeroot
+Dependencies: fakeroot     
 rpicustomiser can be built into a deb package just by simply running `make`.
 
 ## Configuration
