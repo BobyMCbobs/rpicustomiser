@@ -19,6 +19,11 @@ Arch based:
 Standard installation: `make install`  
 Arch: `makepkg -si` (when inside './support/arch')  
 
+
+Arch runtime dependencies:  
+[qemu-user-static](https://aur.archlinux.org/packages/qemu-user-static)  
+[binfmt-qemu-static](https://aur.archlinux.org/packages/binfmt-qemu-static)  
+
 ## Usage  
 Standard use: `rpicustomiser`  
 Help: `rpicustomser -h`  

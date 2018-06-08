@@ -23,7 +23,7 @@
 arg1=$1
 had_greeting_init=1
 check_for_sudo=1
-RPI_CUSTOMISER_VERSION="1.0"
+RPI_CUSTOMISER_VERSION="1.0.1"
 
 ttred=$(echo "")
 ttgreen=$(echo "")
