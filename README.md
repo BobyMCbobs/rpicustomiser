@@ -1,6 +1,8 @@
 # rpicustomiser  
 A useful tool for customising Rasbian. Chroot, install deb packages, copy files, customise.  
 
+On Arch Linux? Get it from the [AUR](https://aur.archlinux.org/packages/rpicustomiser)  
+
 ## Features  
 - Copy files to Raspbian rootfs and/or boot.  
 - Install deb packages to Raspbian target.  
@@ -11,18 +13,9 @@ A useful tool for customising Rasbian. Chroot, install deb packages, copy files,
 
 ## Building
 Debian based: `make deb` (Dependencies: fakeroot)  
-Arch based:
-1. cd into './support/arch'  
-2. `makepkg`
 
 ## Installation
 Standard installation: `make install`  
-Arch: `makepkg -si` (when inside './support/arch')  
-
-
-Arch runtime dependencies:  
-[qemu-user-static](https://aur.archlinux.org/packages/qemu-user-static)  
-[binfmt-qemu-static](https://aur.archlinux.org/packages/binfmt-qemu-static)  
 
 ## Usage  
 Standard use: `rpicustomiser`  
