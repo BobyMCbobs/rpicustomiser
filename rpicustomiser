@@ -778,7 +778,8 @@ EOF
 function sudo_check() {
 
 # sudo stuff
-if id | grep -q sudo && which sudo > /dev/null
+hasSudo=$(sudo -nv 2>&1)
+if [ "$hasSudo" = "sudo: a password is required" ] && which sudo > /dev/null
 then
 	sudo_prog="sudo"
 
