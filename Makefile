@@ -18,13 +18,14 @@ uninstall:
 deb:
 	@mkdir build
 	@make DESTDIR=build install
-	@fakeroot -u cp -r --no-preserve=ownership support/debian build/DEBIAN
-	@fakeroot -u chown -R root:root build
+	@cp -r support/debian build/DEBIAN
+	@sudo chown -R root:root build
 	@dpkg-deb --build build
+	@sudo chown -R $$(whoami):$$(whoami) build
 	@mv build.deb rpicustomiser.deb
 
 clean:
-	@fakeroot -u rm -r build rpicustomiser.deb
+	@rm -r build rpicustomiser.deb
 
 help:
 	@echo "Read 'README.md' for info on building."

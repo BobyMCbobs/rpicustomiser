@@ -1,7 +1,7 @@
 Package: rpicustomiser
 Version: 1.0
 Architecture: all
-Maintainer: github.com/BobyMCbobs
+Maintainer: https://gitlab.com/BobyMCbobs
 Depends: bash, qemu, qemu-user-static, binfmt-support
 Installed-Size: 34.5 kB
 Section: main

@@ -12,7 +12,7 @@ On Arch Linux? Get it from the [AUR](https://aur.archlinux.org/packages/rpicusto
 - Clean chroot setup and reverse-setup  
 
 ## Building
-Debian based: `make deb` (Dependencies: fakeroot)  
+Debian based: `make deb`  
 
 ## Installation
 Standard installation: `make install`  
