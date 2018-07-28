@@ -1,0 +1,5 @@
+rpicustomiser (1.0.1) bionic; urgency=medium
+
+  * Updated make file, build process, and sudo issues.
+
+ -- Caleb Woodbine <calebwoodbine.public@gmail.com>  Tue, 24 Jul 2018 20:53:36 +1200

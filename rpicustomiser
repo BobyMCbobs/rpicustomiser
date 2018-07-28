@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# rpicustomiser by github.com/BobyMCbobs
+# rpicustomiser
 
 #
-# Copyright (C) 2018 Caleb Woodbine <github.com/BobyMCbobs>
+# Copyright (C) 2018 Caleb Woodbine <calebwoodbine.public@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,23 +23,23 @@
 arg1=$1
 had_greeting_init=1
 check_for_sudo=1
-RPI_CUSTOMISER_VERSION="1.0.1"
+RPI_CUSTOMISER_VERSION="1.0.2"
 
-ttred=$(echo "")
-ttgreen=$(echo "")
-ttyellow=$(echo "")
-ttblue=$(echo "")
-ttmagenta=$(echo "")
-ttcyan=$(echo "")
-ttwhite=$(echo "")
-tbred=$(echo "")
-tbwhite=$(echo "")
-treset=$(echo "")
+ttred=
+ttgreen=
+ttyellow=
+ttblue=
+ttmagenta=
+ttcyan=
+ttwhite=
+tbred=
+tbwhite=
+treset=
 
 function gen_cfg() {
 # create rpicustomiser.cfg file
 
-gen_arg=$@
+gen_arg="$1"
 case "$gen_arg" in
 	reset)
 		echo
@@ -60,9 +60,9 @@ case "$gen_arg" in
 	;;
 esac
 
-[ -f $HOME/.config/rpicustomiser/rpicustomiser.cfg ] && rm $HOME/.config/rpicustomiser/rpicustomiser.cfg
+[ -f "$HOME/.config/rpicustomiser/rpicustomiser.cfg" ] && rm "$HOME/.config/rpicustomiser/rpicustomiser.cfg"
 
-cat > $HOME/.config/rpicustomiser/rpicustomiser.cfg << EOF
+cat > "$HOME/.config/rpicustomiser/rpicustomiser.cfg" << EOF
 default_mount_pos="$default_mount_pos"
 default_partition_names=(${default_partition_names[0]} ${default_partition_names[1]})
 EOF
@@ -76,8 +76,7 @@ function main_menu() {
 
 if [ $had_greeting_init = 1 ]
 then
-	echo
-	echo "${ttgreen}-- WELCOME to $0 -- ${treset}"
+	echo "${ttgreen}-- rpicustomiser --${treset}"
 	had_greeting_init=0
 fi
 
@@ -455,10 +454,12 @@ done
 case "$mount_num" in
 	4|5)
 		chroot_state="${ttgreen}$(echo Mounted.)${treset}"
+		trap chrootReminder EXIT
 	;;
 
 	*)
 		chroot_state="${ttyellow}$(echo Unmounted.)${treset}"
+		trap "" EXIT
 	;;
 esac
 
@@ -492,6 +493,8 @@ if [ $setup_progress = 0 ]
 then
 	echo "${ttgreen}> Successfully mounted."
 	echo "> Finalising..."
+
+	trap chrootReminder EXIT
 
 	$sudo_prog sed -i 's/^/#/g' $default_mount_pos/${default_partition_names[1]}/etc/ld.so.preload
 	$sudo_prog cp /usr/bin/qemu-arm-static $default_mount_pos/${default_partition_names[1]}/usr/bin/
@@ -534,11 +537,20 @@ then
 
 	echo "> Process complete. ${treset}"
 
+	trap "" EXIT
+
 	chroot_state="${ttyellow}$(echo Unmounted.)${treset}"
 else
 	echo "${ttred}${tbwhite}>> Whoops! Had issues unmounting. I can't clean up. ${treset}"
 	chroot_state="${ttgreen}$(echo Not unmounted completely.)${treset}"
 fi
+
+}
+
+function chrootReminder() {
+# tell the user that a chroot is still setup.
+
+echo "> It appears that the chroot is still setup. Make sure you unmount it!"
 
 }
 
@@ -619,13 +631,13 @@ EOF
 
 mount_count=1
 mount_options=()
-for i in $(ls $default_mount_pos)
+for i in $default_mount_pos
 do
 	if [ -f $default_mount_pos/$i/etc/apt/sources.list.d/raspi.list ] && [ -f $default_mount_pos/$i/usr/bin/raspi-config ]
 	then
 		echo "${ttcyan}[0$mount_count] '$i' (Found option).${treset}"
 		mount_count=$((mount_count+=1))
-		mount_options+="$i"
+		mount_options+=("$i")
 	fi
 done
 
@@ -686,13 +698,13 @@ EOF
 
 mount_count=1
 mount_options=()
-for i in $(ls $default_mount_pos)
+for i in $default_mount_pos
 do
 	if [ -f $default_mount_pos/$i/kernel.img ] && [ -f $default_mount_pos/$i/config.txt ]
 	then
 		echo "${ttcyan}[0$mount_count] '$i' (Found option).${treset}"
 		mount_count=$((mount_count+=1))
-		mount_options+="$i"
+		mount_options+=("$i")
 	fi
 done
 
@@ -783,7 +795,7 @@ if [[ "$hasSudo" = "sudo: a password is required" || "$hasSudo" = "" || -z "$has
 then
 	sudo_prog="sudo"
 
-elif [ $(whoami) = "root" ]
+elif [ "$(whoami)" = "root" ]
 then
 	sudo_prog=""
 else
@@ -796,10 +808,7 @@ fi
 function print_version() {
 # print version information
 
-cat << EOF
-rpicustomiser v$RPI_CUSTOMISER_VERSION by github.com/BobyMCbobs
-github.com/BobyMCBobs
-EOF
+echo "rpicustomiser v$RPI_CUSTOMISER_VERSION "
 
 }
 
@@ -813,7 +822,7 @@ then
 	gen_cfg
 fi
 
-. $HOME/.config/rpicustomiser/rpicustomiser.cfg
+. "$HOME/.config/rpicustomiser/rpicustomiser.cfg"
 
 # program args
 case "$arg1" in

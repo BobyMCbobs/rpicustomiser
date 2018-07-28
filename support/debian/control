@@ -1,9 +1,11 @@
-Package: rpicustomiser
-Version: 1.0
-Architecture: all
-Maintainer: https://gitlab.com/BobyMCbobs
-Depends: bash, qemu, qemu-user-static, binfmt-support
-Installed-Size: 34.5 kB
-Section: main
+Source: rpicustomiser
+Section: utils
 Priority: optional
+Maintainer: Caleb Woodbine <calebwoodbine.public@gmail.com>
+Standards-Version: 1.0.2
+Build-Depends: debhelper (>= 9)
+
+Package: rpicustomiser
+Architecture: all
+Depends: bash, qemu, qemu-user-static, binfmt-support
 Description: A useful tool for customising Rasbian. Chroot, install deb packages, copy files, customise.
