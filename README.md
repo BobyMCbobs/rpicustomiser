@@ -15,7 +15,7 @@ rpicustomiser can act as a really useful workflow tool for setting up to deployi
 - Clean chroot setup and reverse-setup  
 
 ##### Where to get it
-Ubuntu: ppa:bobymcbobs/ppa
+Ubuntu: ppa:bobymcbobs/ppa  
 Arch Linux: [AUR](https://aur.archlinux.org/packages/rpicustomiser)  
 
 ##### Packaging
