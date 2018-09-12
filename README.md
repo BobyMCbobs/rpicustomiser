@@ -14,13 +14,17 @@ rpicustomiser can act as a really useful workflow tool for setting up to deployi
 - Bash completion for args  
 - Clean chroot setup and reverse-setup  
 
+##### Where to get it
+Ubuntu: ppa:bobymcbobs/ppa
+Arch Linux: [AUR](https://aur.archlinux.org/packages/rpicustomiser)  
+
 ##### Packaging
 Debian:  
 	Binary: `make deb-pkg`  
 	Source: `make deb-src`  
 CentOS/Fedora specs: support/specs/CentOS-Fedora  
 openSUSE specs: support/specs/openSUSE  
-Arch Linux: [AUR](https://aur.archlinux.org/packages/rpicustomiser)  
+Arch Linux: support/arch/PKGBUILD  
 Zip archive: `make build-zip`  
 
 ##### Installation
@@ -49,4 +53,5 @@ Use the config menu (which will be suggested if an SD card mounted is not detect
 ##### Use case ideas  
 - Setting up one Raspbian install for imaging.  
 - Installing deb packages onto an install of Raspbian without having a working Raspberry Pi or internet available to a Raspberry Pi.  
+- Building a debian package requires 'build-essential' and 'devscripts'.
 - Main repository is on [GitLab](https://gitlab.com/BobyMCbobs/rpicustomiser). There is a [GitHub](https://github.com/BobyMCbobs/rpicustomiser) mirror.

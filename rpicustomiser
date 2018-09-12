@@ -20,7 +20,7 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 #
 
-arg1=$1
+arg1=$@
 had_greeting_init=1
 check_for_sudo=1
 RPI_CUSTOMISER_VERSION="1.0.2"
@@ -95,7 +95,7 @@ ${ttgreen}> What do you want to do?${treset}
 [qQ]${ttred} Quit.${treset}
 EOF
 
-read -p ": " continuevar
+read -r -p ": " continuevar
 case "$continuevar" in
 	0|00)
 		verify_to_copy_data_to_RPi
@@ -144,11 +144,11 @@ esac
 function scan_for_sd() {
 # locate SD card.
 
-if [ ! -d $default_mount_pos/${default_partition_names[1]} ] && [ ! -d $default_mount_pos/${default_partition_names[0]} ]
+if [ ! -d "$default_mount_pos/${default_partition_names[1]}" ] && [ ! -d "$default_mount_pos/${default_partition_names[0]}" ]
 then
 	echo "${ttred}>> Cannot find RPi SD card. Please insert. ${treset}"
 	echo "> I'm looking for '$default_mount_pos/${default_partition_names[1]}' and '$default_mount_pos/${default_partition_names[0]}'."
-	read -p "> Try again or change settings? [yY|nN|sS] " continuevar
+	read -r -p "> Try again or change settings? [yY|nN|sS] " continuevar
 	echo
 	case "$continuevar" in
 		y|Y)
@@ -180,8 +180,8 @@ function verify_to_copy_data_to_RPi() {
 check_init_pwd
 
 empty_folder_counter=0
-[[ ! "$(ls -A ./${default_partition_names[0]})" ]] && empty_folder_counter=$((empty_folder_counter+1))
-[[ ! "$(ls -A ./${default_partition_names[1]})" ]] && empty_folder_counter=$((empty_folder_counter+1))
+[[ ! $(ls -A ./"${default_partition_names[0]}") ]] && empty_folder_counter=$((empty_folder_counter+1))
+[[ ! $(ls -A ./"${default_partition_names[1]}") ]] && empty_folder_counter=$((empty_folder_counter+1))
 
 case "$empty_folder_counter" in
 	2)
@@ -191,7 +191,7 @@ case "$empty_folder_counter" in
 esac
 
 
-read -p "> Copy data from './${default_partition_names[1]}' to '$default_mount_pos/${default_partition_names[1]}'? [yY|nN] " continuevar
+read -r -p "> Copy data from './${default_partition_names[1]}' to '$default_mount_pos/${default_partition_names[1]}'? [yY|nN] " continuevar
 echo
 case "$continuevar" in
 	y|Y)
@@ -215,7 +215,7 @@ esac
 function copy_data_to_RPi() {
 # copy data from ./${default_partition_names[1]} to $default_mount_pos/${default_partition_names[1]}.
 
-if $sudo_prog cp -r -f -v ./${default_partition_names[1]}/. $default_mount_pos/${default_partition_names[1]}/ && $sudo_prog cp -r -f -v ./${default_partition_names[0]}/. $default_mount_pos/${default_partition_names[0]}/
+if "$sudo_prog" cp -r -f -v ./"${default_partition_names[1]}"/. "$default_mount_pos"/"${default_partition_names[1]}"/ && "$sudo_prog" cp -r -f -v ./"${default_partition_names[0]}"/. "$default_mount_pos"/$"{default_partition_names[0]}"/
 then
 	echo "${ttgreen}> Copied sucessfully.${treset}"
 else
@@ -238,10 +238,10 @@ then
 fi
 
 check_mount_chroot
-if ! echo $chroot_state | grep -q Mounted.
+if ! echo "$chroot_state" | grep -q Mounted.
 then
 	echo "${ttred}>> Chroot not setup. ${treset}"
-	read -p "Shall I setup it up? [yY|nN] " continuevar
+	read -r -p "Shall I setup it up? [yY|nN] " continuevar
 	echo
 	case "$continuevar" in
 		y|Y)
@@ -256,7 +256,7 @@ then
 
 fi
 
-if $sudo_prog cp -r -v -f ./debs $default_mount_pos/${default_partition_names[1]}/tmp/
+if "$sudo_prog" cp -r -v -f ./debs "$default_mount_pos"/"${default_partition_names[1]}"/tmp/
 then
 	echo "${ttgreen}> Copied over all deb packages. ${treset}"
 else
@@ -267,7 +267,7 @@ else
 fi
 
 
-if $sudo_pkg cat > $default_mount_pos/${default_partition_names[1]}/tmp/install_debs.sh << DELIM
+if "$sudo_prog" cat > "$default_mount_pos"/"${default_partition_names[1]}"/tmp/install_debs.sh << DELIM
 echo "> Starting package install."
 apt update
 cd /tmp/debs/
@@ -293,7 +293,7 @@ fi
 
 unchroot
 
-if $sudo_prog rm -rf $default_mount_pos/${default_partition_names[1]}/tmp/install_debs.sh $default_mount_pos/${default_partition_names[1]}/tmp/debs
+if "$sudo_prog" rm -rf "$default_mount_pos"/"${default_partition_names[1]}"/tmp/install_debs.sh "$default_mount_pos"/"${default_partition_names[1]}"/tmp/debs
 then
 	echo "${ttgreen}> Cleaned up.${treset}"
 else
@@ -305,14 +305,14 @@ fi
 function init_pwd() {
 # initalise current directory.
 
-if [[ -d $(pwd)/${default_partition_names[0]} ]] || [[ -d $(pwd)/${default_partition_names[1]} ]] || [[ -d $(pwd)/debs ]]  || [[ -f $(pwd)/.rpicustomiser_dir ]]
+if [[ -d $(pwd)/"${default_partition_names[0]}" ]] || [[ -d $(pwd)/"{default_partition_names[1]}" ]] || [[ -d $(pwd)/debs ]]  || [[ -f $(pwd)/.rpicustomiser_dir ]]
 then
 	echo "${ttgreen}> Current directory already initialised."
 	echo
 	main_menu
 fi
 
-if mkdir -p ./raspberrypi_customiser/{${default_partition_names[0]},${default_partition_names[1]},debs} && echo "" > ./raspberrypi_customiser/.rpicustomiser_dir
+if mkdir -p ./raspberrypi_customiser/{"${default_partition_names[0]}","${default_partition_names[1]}",debs} && echo "" > ./raspberrypi_customiser/.rpicustomiser_dir
 then
 	echo "${ttgreen}> Initalised '$(pwd)/raspberrypi_customiser'. ${treset}"
 else
@@ -328,9 +328,9 @@ then
 	echo "${ttgreen}> Please cd into 'raspberry_customiser'.${treset}"
 	exit
 
-elif [[ ! -d $(pwd)/${default_partition_names[0]} ]] || [[ ! -d $(pwd)/${default_partition_names[1]} ]] || [[ ! -d $(pwd)/debs ]]  || [[ ! -f $(pwd)/.rpicustomiser_dir ]]
+elif [[ ! -d $(pwd)/"${default_partition_names[0]}" ]] || [[ ! -d $(pwd)/"${default_partition_names[1]}" ]] || [[ ! -d $(pwd)/debs ]]  || [[ ! -f $(pwd)/.rpicustomiser_dir ]]
 then
-	echo "${ttwhite}${tbred}>> Please run ${ttred}${tbwhite}'$0 init'${treset}${ttwhite}${tbred} to setup a workstation.${treset}"
+	echo "${ttwhite}${tbred}>> Please run ${ttred}${tbwhite}'$(basename ${0}) init'${treset}${ttwhite}${tbred} to setup a workstation.${treset}"
 	exit
 fi
 
@@ -352,7 +352,7 @@ Filesystems for chroot: $chroot_state
 [qQ] Quit.
 EOF
 
-read -p ": " continuevar
+read -r -p ": " continuevar
 echo
 case "$continuevar" in
 	0|00)
@@ -394,18 +394,18 @@ function enter_chroot() {
 
 chr_cmd=$@
 
-if echo $chroot_state | grep -q "Mounted."
+if echo "$chroot_state" | grep -q "Mounted."
 then
 	echo
 	echo "${ttgreen}> Filesystems are mounted. Continuing. ${treset}"
 	case "$chr_cmd" in
 		deb)
 			echo "> Running commands '$chr_cmd'"
-	       		$sudo_prog chroot $default_mount_pos/${default_partition_names[1]}/ /bin/bash -c 'bash /tmp/install_debs.sh'
+	       		"$sudo_prog" chroot "$default_mount_pos"/"${default_partition_names[1]}"/ /bin/bash -c 'bash /tmp/install_debs.sh'
 		;;
 
 		rpi_cfg)
-			$sudo_prog chroot $default_mount_pos/${default_partition_names[1]}/ /bin/bash -c 'raspi-config'
+			"$sudo_prog" chroot "$default_mount_pos"/"${default_partition_names[1]}"/ /bin/bash -c 'raspi-config'
 		;;
 
 		*)
@@ -414,14 +414,14 @@ then
 			echo "$tbred> Some commands may effect host. $treset"
 			echo
 			echo "> Press ^D to exit. (Ctrl-D)"
-			$sudo_prog chroot $default_mount_pos/${default_partition_names[1]}/ /bin/bash
+			"$sudo_prog" chroot "$default_mount_pos"/"${default_partition_names[1]}"/ /bin/bash
 			echo "${ttred}${tbwhite}> Please make sure you unmount by running opt[1]. ${treset}"
 		;;
 	esac
 
 else
 	echo "${ttred}>> Whoops! Filesystems not mounted. ${treset}"
-	read -p "Shall I setup it up? [yY|nN] " continuevar
+	read -r -p "Shall I setup it up? [yY|nN] " continuevar
 	echo
 	case "$continuevar" in
 		y|Y)
@@ -445,7 +445,7 @@ function check_mount_chroot() {
 mount_num=0
 for point in /dev /sys /proc /dev/pts
 do
-        if mount | grep -q $default_mount_pos/${default_partition_names[1]}$point
+        if mount | grep -q "$default_mount_pos/${default_partition_names[1]}$point"
         then
                 mount_num=$((mount_num+1))
 	fi
@@ -453,12 +453,12 @@ done
 
 case "$mount_num" in
 	4|5)
-		chroot_state="${ttgreen}$(echo Mounted.)${treset}"
+		chroot_state="${ttgreen}Mounted.${treset}"
 		trap chrootReminder EXIT
 	;;
 
 	*)
-		chroot_state="${ttyellow}$(echo Unmounted.)${treset}"
+		chroot_state="${ttyellow}Unmounted.${treset}"
 		trap "" EXIT
 	;;
 esac
@@ -474,11 +474,11 @@ setup_progress=0
 
 for point in /dev /sys /proc /dev/pts
 do
-	if mount | grep -q $default_mount_pos/${default_partition_names[1]}$point
+	if mount | grep -q "$default_mount_pos/${default_partition_names[1]}$point"
 	then
 		echo "${ttred}>> Already mounted. ${treset}"
 	else
-		if ! $sudo_prog mount --bind $point $default_mount_pos/${default_partition_names[1]}$point
+		if ! "$sudo_prog" mount --bind "$point" "$default_mount_pos/${default_partition_names[1]}$point"
 		then
 			echo "${ttred}>> Failed to mount '$point' to '$default_mount_pos/${default_partition_names[1]}$point'. ${treset}"
 			setup_progress=1
@@ -486,8 +486,8 @@ do
 	fi
 done
 
-$sudo_prog sed -i 's/^/#/g' $default_mount_pos/${default_partition_names[1]}/etc/ld.so.preload
-$sudo_prog cp /usr/bin/qemu-arm-static $default_mount_pos/${default_partition_names[1]}/usr/bin/
+"$sudo_prog" sed -i 's/^/#/g' "$default_mount_pos"/"${default_partition_names[1]}"/etc/ld.so.preload
+"$sudo_prog" cp /usr/bin/qemu-arm-static "$default_mount_pos"/"${default_partition_names[1]}"/usr/bin/
 
 if [ $setup_progress = 0 ]
 then
@@ -496,11 +496,11 @@ then
 
 	trap chrootReminder EXIT
 
-	$sudo_prog sed -i 's/^/#/g' $default_mount_pos/${default_partition_names[1]}/etc/ld.so.preload
-	$sudo_prog cp /usr/bin/qemu-arm-static $default_mount_pos/${default_partition_names[1]}/usr/bin/
+	"$sudo_prog" sed -i 's/^/#/g' "$default_mount_pos"/"${default_partition_names[1]}"/etc/ld.so.preload
+	"$sudo_prog" cp /usr/bin/qemu-arm-static "$default_mount_pos"/"${default_partition_names[1]}"/usr/bin/
 
 	echo "> Chroot setup. ${treset}"
-	chroot_state="${ttgreen}$(echo Mounted.)${treset}"
+	chroot_state="${ttgreen}Mounted.${treset}"
 else
 	echo "${ttred}>> Chroot failed. Cleaning up... ${treset}"
 	unchroot
@@ -517,9 +517,9 @@ echo "${ttgreen}> Unmounting filesystems.${treset}"
 
 for point in /proc /sys /dev/pts /dev
 do
-	if mount | grep -q $default_mount_pos/${default_partition_names[1]}$point
+	if mount | grep -q "$default_mount_pos/${default_partition_names[1]}$point"
 	then
-		if ! $sudo_prog umount $default_mount_pos/${default_partition_names[1]}$point
+		if ! "$sudo_prog" umount "$default_mount_pos/${default_partition_names[1]}$point"
 		then
 			echo "${ttred}>> Failed to unmount '$default_mount_pos/${default_partition_names[1]}$point'. ${treset}"
 			setup_progress=1
@@ -532,17 +532,17 @@ then
 	echo "${ttgreen}> Unmount of chroot mounts complete."
 	echo "> Cleaning up..."
 
-	$sudo_prog sed -i 's/#//g' $default_mount_pos/${default_partition_names[1]}/etc/ld.so.preload
-        $sudo_prog rm $default_mount_pos/${default_partition_names[1]}/usr/bin/qemu-arm-static
+	"$sudo_prog" sed -i 's/#//g' "$default_mount_pos"/"${default_partition_names[1]}"/etc/ld.so.preload
+        "$sudo_prog" rm "$default_mount_pos"/"${default_partition_names[1]}"/usr/bin/qemu-arm-static
 
 	echo "> Process complete. ${treset}"
 
 	trap "" EXIT
 
-	chroot_state="${ttyellow}$(echo Unmounted.)${treset}"
+	chroot_state="${ttyellow}Unmounted.${treset}"
 else
 	echo "${ttred}${tbwhite}>> Whoops! Had issues unmounting. I can't clean up. ${treset}"
-	chroot_state="${ttgreen}$(echo Not unmounted completely.)${treset}"
+	chroot_state="${ttgreen}Not unmounted completely.${treset}"
 fi
 
 }
@@ -572,14 +572,14 @@ ${ttblue}Mount points${treset}
 [qQ] Quit.
 EOF
 
-read -p ": " continuevar
+read -r -p ": " continuevar
 
 case "$continuevar" in
 	0)
 		echo
 		echo "${ttred}Note: Please use absolute directory path.${treset}"
-		read -p "${ttmagenta}New base mount directory (i.e /media/\$USER):${treset} " continuevar_dir
-		[ ! -d $continuevar_dir ] && echo "${ttred}>>'$continuevar_dir' doesn't exist. Please set an existing one, or make one.${treset}" && rpic_config
+		read -r -p "${ttmagenta}New base mount directory (i.e /media/\$USER):${treset} " continuevar_dir
+		[ ! -d "$continuevar_dir" ] && echo "${ttred}>>'$continuevar_dir' doesn't exist. Please set an existing one, or make one.${treset}" && rpic_config
 		default_mount_pos="$continuevar_dir"
 		echo "${ttgreen}> Set '$default_mount_pos' as mount location.${treset}"
 		rpic_config
@@ -633,7 +633,7 @@ mount_count=1
 mount_options=()
 for i in $default_mount_pos
 do
-	if [ -f $default_mount_pos/$i/etc/apt/sources.list.d/raspi.list ] && [ -f $default_mount_pos/$i/usr/bin/raspi-config ]
+	if [ -f "$default_mount_pos"/"$i"/etc/apt/sources.list.d/raspi.list ] && [ -f "$default_mount_pos"/"$i"/usr/bin/raspi-config ]
 	then
 		echo "${ttcyan}[0$mount_count] '$i' (Found option).${treset}"
 		mount_count=$((mount_count+=1))
@@ -647,7 +647,7 @@ echo "${ttmagenta}[rR] Reset.${treset}"
 echo "${ttblue}[mM] Return to Main Menu.${treset}"
 echo "[qQ] Quit."
 
-read -p ": " continuevar_num
+read -r -p ": " continuevar_num
 echo
 
 case "$continuevar_num" in
@@ -700,7 +700,7 @@ mount_count=1
 mount_options=()
 for i in $default_mount_pos
 do
-	if [ -f $default_mount_pos/$i/kernel.img ] && [ -f $default_mount_pos/$i/config.txt ]
+	if [ -f "$default_mount_pos"/"$i"/kernel.img ] && [ -f "$default_mount_pos"/"$i"/config.txt ]
 	then
 		echo "${ttcyan}[0$mount_count] '$i' (Found option).${treset}"
 		mount_count=$((mount_count+=1))
@@ -714,7 +714,7 @@ echo "${ttmagenta}[rR] Reset.${treset}"
 echo "${ttblue}[mM] Return to Main Menu.${treset}"
 echo "[qQ] Quit."
 
-read -p ": " continuevar_num
+read -r -p ": " continuevar_num
 echo
 
 case "$continuevar_num" in
@@ -816,9 +816,9 @@ default_mount_pos="/media/$USER"
 default_partition_names=(boot rootfs)
 
 # cfg stuff
-if [ ! -f $HOME/.config/rpicustomiser/rpicustomiser.cfg ]
+if [ ! -f "$HOME/.config/rpicustomiser/rpicustomiser.cfg" ]
 then
-	mkdir -p $HOME/.config/rpicustomiser
+	mkdir -p "$HOME/.config/rpicustomiser"
 	gen_cfg
 fi
 
